@@ -6,6 +6,7 @@ A Clojure library designed to show meta of clojure.core
 
 lein uberjar
 java -jar ./target/coreweb-0.1.0-SNAPSHOT-standalone.jar
+http://localhost:3000
 
 ## License
 
