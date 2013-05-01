@@ -1,13 +1,14 @@
 # default
 
-A Clojure library designed to ... well, that part is up to you.
+A Clojure library designed to show meta of clojure.core
 
 ## Usage
 
-FIXME
+lein uberjar
+java -jar ./target/coreweb-0.1.0-SNAPSHOT-standalone.jar
 
 ## License
 
-Copyright © 2013 FIXME
+Copyright © 2013 gtss
 
 Distributed under the Eclipse Public License, the same as Clojure.
