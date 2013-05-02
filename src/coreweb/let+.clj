@@ -56,5 +56,5 @@
 
 (let+ let-request++ coreweb.let+/let-request+ #(and (-> % first first integer?) (-> % last last symbol?))
   [[n request] body]
-  (let [function (last `(~@body)) bindings (nth (:arglists (meta (resolve function))) n)]
+  (let [function (last `(~@body)) bindings (nth (:arglists (meta (resolve function))) n {})]
     `(coreweb.let+/let-request+ [~bindings ~request] ~@body)))
