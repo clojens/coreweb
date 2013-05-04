@@ -1,16 +1,16 @@
 (ns coreweb.handler
-  (:use coreweb.str
-        coreweb.let+
-        coreweb.response))
+  (:use coreweb.let+
+        coreweb.response
+        coreweb.special))
 
-(defmacro <- [wrap-fn bindings & body]
+(defmacro <- [wrapper bindings & body]
   `(fn [request#]
      (-> (let-request++ [~bindings request#] ~@body)
-       ~wrap-fn
+       ~wrapper
        (render request#))))
 
-(defmacro def-handler-macro [macro-symbol wrap-fn]
+(defmacro def-handler-macro [macro-symbol wrapper]
   `(defmacro ~macro-symbol [bindings# & body#]
-     `(<- ~'~wrap-fn ~bindings# ~@body#)))
+     `(<- ~'~wrapper ~bindings# ~@body#)))
 
-(def-handler-macro <-str coreweb.str/str-all)
+(def-handler-macro <-str coreweb.special/str-all)

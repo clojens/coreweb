@@ -1,4 +1,4 @@
-(ns coreweb.web.all
+(ns coreweb.web.get
   (:use coreweb.tag
         coreweb.mapping
         coreweb.handler
