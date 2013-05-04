@@ -11,4 +11,3 @@
       (clojure.string/join
         (br)
         (map #(let [[u] %] (a {"href" u} (clojure.string/replace (uri-decode u) ".html" ""))) (uris :get ))))))
-
