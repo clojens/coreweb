@@ -1,6 +1,6 @@
 (ns coreweb.response
   "Methods for generating Ring response maps"
-  (:use coreweb.str
+  (:use coreweb.special
         [ring.util.response :only (response content-type)])
   (:require [clojure.java.io :as io])
   (:import [java.io File InputStream]

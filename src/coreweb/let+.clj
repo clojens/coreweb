@@ -47,14 +47,13 @@
                bindings)
         args (remove #{:as '&} temp)]
     `(let [~@(vector-bindings bindings request)]
-       (if (fn? ~(last body)) ((comp ~@body) ~@args)
-         (do ~@body)))))
+       ((comp ~@body) ~@args))))
 
 (let+ let-request+ coreweb.let+/let-request
-  #(and (-> % first first vector?) (-> % last last symbol?))
+  #(and (-> % first first vector?) (-> % last last symbol?) (-> % last last resolve meta :arglists nil? not))
   coreweb.let+/comp-body-binding)
 
 (let+ let-request++ coreweb.let+/let-request+ #(and (-> % first first integer?) (-> % last last symbol?))
   [[n request] body]
-  (let [function (last `(~@body)) bindings (nth (:arglists (meta (resolve function))) n {})]
+  (let [operation (last `(~@body)) bindings (nth (:arglists (meta (resolve operation))) n {})]
     `(coreweb.let+/let-request+ [~bindings ~request] ~@body)))
