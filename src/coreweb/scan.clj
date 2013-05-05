@@ -3,6 +3,8 @@
   (:use coreweb.mapping
         coreweb.handler
         coreweb.special
+        coreweb.tag
+        coreweb.safe
         clojure.java.io)
   (:require clojure.string))
 
@@ -58,10 +60,40 @@
     (require a-ns)
     (let [path-str (str "/" a-ns "/")]
       (doseq [[s v] (ns-publics a-ns)]
-        (add-mapping
-          (str path-str (uri-encode (name s)) ".html")
-          :all (<-str {uri :uri} (meta (resolve (symbol (let [u (uri-decode uri)
-                                                              start (count path-str)
-                                                              end (.indexOf u ".html")]
-                                                          (subs u start end)))))))))
+        (let [base (str path-str (uri-encode (name s))) m (meta v)]
+          (add-mapping
+            (str base ".html")
+            :all (<-str
+                   {uri :uri}
+                   (html {}
+                     (apply body {} (reduce safe m #{:inline :ns })
+                       (let [args (:arglists m)]
+                         (for [i (range (count args))]
+                           (let [post-uri (str base "@" i ".html")]
+                             (add-mapping post-uri :post
+                               (fn [req]
+                                 (let [req (assoc req :params
+                                             (translate-all
+                                               (fn translate-html [request-value]
+                                                 (if (vector? request-value)
+                                                   (mapv translate-html (remove #{""} request-value))
+                                                   (let [param (read-string request-value)]
+                                                     (if (seq? param)
+                                                       request-value
+                                                       (eval param)))))
+                                               (:params req)))]
+                                   ((eval `(coreweb.handler/<-
+                                             #(body {} ~(str s \: (nth args i)) ~(safe-all (:params req)) \= %)
+                                             ~i ~s)) req))))
+                             (apply form {"action" post-uri "method" "post"}
+                               (concat
+                                 (let [nargs (nth args i)
+                                       in #(str (br) % \:
+                                             (input {"type" "text" "name" (str %)}))]
+                                   (for [j (range (count nargs))
+                                         :let [arg (nargs j)]]
+                                     (if (= '& arg)
+                                       (in (nargs (inc j)))
+                                       (in arg))))
+                                 [(br) (input {"type" "submit"})]))))))))))))
     (catch Exception e)))
