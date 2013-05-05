@@ -11,6 +11,14 @@
     (let-request++ [[x y] {:params {:x "bar", :y "baz"}}]
       foo))
 
+  (defn yx [y x]
+    (is (= x "x"))
+    (is (= y "y"))
+    nil)
+  (testing "vector arguments2"
+    (let-request++ [[y x] {:params {:x "x", :y "y"}}]
+      yx))
+
   (defn xym [x y more]
     (is (= x "foo"))
     (is (= y "bar"))
@@ -67,10 +75,10 @@
 
   (defn xm [x & more]
     (is (= x "a"))
-    (is (= more ["b" "c"])))
+    (is (= more (list "b" "c"))))
 
   (testing "arglists binding2"
-    (let-request++ [0 {:params {:x "a", :y "b", :z "c"}}]
-      xy))
+    (let-request++ [0 {:params {:x "a", :more ["b" "c"]}}]
+      xm))
 
   )

@@ -55,5 +55,12 @@
 
 (let+ let-request++ coreweb.let+/let-request+ #(and (-> % first first integer?) (-> % last last symbol?))
   [[n request] body]
-  (let [operation (last `(~@body)) bindings (nth (:arglists (meta (resolve operation))) n {})]
-    `(coreweb.let+/let-request+ [~bindings ~request] ~@body)))
+  (let [operation (last `(~@body))
+        fix-bindings #(if (vector? %) (vec (remove #{'&} %)) %)
+        maybe-bindings (nth (:arglists (meta (resolve operation))) n {})
+        has-more (some #{'&} maybe-bindings)
+        bindings (fix-bindings maybe-bindings)]
+    `(let [~@(vector-bindings bindings request)]
+       ~(if has-more
+          `(apply (comp ~@body) ~@bindings)
+          `((comp ~@body) ~@bindings)))))
