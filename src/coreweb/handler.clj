@@ -6,7 +6,7 @@
 (defmacro <- [wrapper bindings & body]
   `(fn [request#]
      (-> (let-request++ [~bindings request#] ~@body)
-       ~wrapper
+       (~wrapper)
        (render request#))))
 
 (defmacro def-handler-macro [macro-symbol wrapper]
