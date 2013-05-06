@@ -61,6 +61,6 @@
         has-more (some #{'&} maybe-bindings)
         bindings (fix-bindings maybe-bindings)]
     `(let [~@(vector-bindings bindings request)]
-       ~(if has-more
-          `(apply (comp ~@body) ~@bindings)
-          `((comp ~@body) ~@bindings)))))
+       ~(cond (= {} maybe-bindings) `(do ~@body)
+          has-more `(apply (comp ~@body) ~@bindings)
+          :else `((comp ~@body) ~@bindings)))))
