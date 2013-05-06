@@ -3,14 +3,14 @@
         coreweb.response
         coreweb.special))
 
-(defmacro <- [wrapper bindings & body]
+(defmacro <- [reuslt-wrapper bindings & body]
   `(fn [request#]
      (-> (let-request++ [~bindings request#] ~@body)
-       (~wrapper)
+       (~reuslt-wrapper)
        (render request#))))
 
-(defmacro def-handler-macro [macro-symbol wrapper]
+(defmacro def-handler-macro [macro-symbol reuslt-wrapper]
   `(defmacro ~macro-symbol [bindings# & body#]
-     `(<- ~'~wrapper ~bindings# ~@body#)))
+     `(<- ~'~reuslt-wrapper ~bindings# ~@body#)))
 
 (def-handler-macro <-str coreweb.special/str-all)
