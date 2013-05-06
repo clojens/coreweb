@@ -3,6 +3,7 @@
   (:use coreweb.mapping
         coreweb.handler
         coreweb.special
+        coreweb.request
         coreweb.tag
         coreweb.safe
         clojure.java.io)
@@ -55,6 +56,26 @@
           (dorun (map (partial mapping-in-jar ns-str dir-str) (zip-dir zip dir-str)))
           (.close zip))))))
 
+(defn- add-eval-mapping [uri post-uri s nargs i]
+  (add-mapping post-uri :post
+    (fn [req]
+      ((eval `(coreweb.handler/<-
+                #(body {} "from:" ~(safe-html (uri-decode uri))
+                   (br) ~(str s \: nargs) ~(safe-all (:params req)) \= %)
+                ~i ~s)) (read-request-string req)))))
+
+(defn- build-post-form [post-uri nargs]
+  (apply form {"action" post-uri "method" "post"}
+    (concat
+      (let [in #(str (br) % \:
+                  (input {"type" "text" "name" (str %)}))]
+        (for [j (range (count nargs))
+              :let [arg (nargs j)]]
+          (if (= '& arg)
+            (in (nargs (inc j)))
+            (in arg))))
+      [(br) (input {"type" "submit"})])))
+
 (defn scan-ns [a-ns]
   (try
     (require a-ns)
@@ -65,35 +86,10 @@
             (str base ".html")
             :all (<-str
                    {uri :uri}
-                   (html {}
                      (apply body {} (reduce safe m #{:inline :ns })
                        (let [args (:arglists m)]
                          (for [i (range (count args))]
-                           (let [post-uri (str base "@" i ".html")]
-                             (add-mapping post-uri :post
-                               (fn [req]
-                                 (let [req (assoc req :params
-                                             (translate-all
-                                               (fn translate-html [request-value]
-                                                 (if (vector? request-value)
-                                                   (mapv translate-html (remove #{""} request-value))
-                                                   (let [param (read-string request-value)]
-                                                     (if (seq? param)
-                                                       request-value
-                                                       (eval param)))))
-                                               (:params req)))]
-                                   ((eval `(coreweb.handler/<-
-                                             #(body {} ~(str s \: (nth args i)) ~(safe-all (:params req)) \= %)
-                                             ~i ~s)) req))))
-                             (apply form {"action" post-uri "method" "post"}
-                               (concat
-                                 (let [nargs (nth args i)
-                                       in #(str (br) % \:
-                                             (input {"type" "text" "name" (str %)}))]
-                                   (for [j (range (count nargs))
-                                         :let [arg (nargs j)]]
-                                     (if (= '& arg)
-                                       (in (nargs (inc j)))
-                                       (in arg))))
-                                 [(br) (input {"type" "submit"})]))))))))))))
-    (catch Exception e)))
+                           (let [post-uri (str base "@" i ".html") nargs (nth args i)]
+                             (add-eval-mapping uri post-uri s nargs i)
+                             (build-post-form post-uri nargs))))))))))
+    (catch Exception e (.printStackTrace e))))
