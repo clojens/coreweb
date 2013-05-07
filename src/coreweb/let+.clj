@@ -1,4 +1,5 @@
-(ns coreweb.let+)
+(ns coreweb.let+
+  (:use coreweb.request))
 
 (defn- assoc-&-binding [binds req sym]
   (assoc binds sym `(dissoc (:params ~req)
@@ -50,10 +51,10 @@
        ((comp ~@body) ~@args))))
 
 (let+ let-request+ coreweb.let+/let-request
-  #(and (-> % first first vector?) (-> % last last symbol?) (-> % last last resolve meta :arglists nil? not))
+  #(and (-> % ffirst vector?) (-> % last last symbol?) (-> % last last resolve meta :arglists nil? not))
   coreweb.let+/comp-body-binding)
 
-(let+ let-request++ coreweb.let+/let-request+ #(and (-> % first first integer?) (-> % last last symbol?))
+(let+ let-request++ coreweb.let+/let-request+ #(and (-> % ffirst integer?) (-> % last last symbol?))
   [[n request] body]
   (let [operation (last `(~@body))
         fix-bindings #(if (vector? %) (vec (remove #{'&} %)) %)
@@ -64,3 +65,8 @@
        ~(cond (= {} maybe-bindings) `(do ~@body)
           has-more `(apply (comp ~@body) ~@bindings)
           :else `((comp ~@body) ~@bindings)))))
+
+(let+ let-request+++ coreweb.let+/let-request++ #(-> % ffirst string?)
+  [[s request] body]
+  (let [bindings (read-string s)]
+    `(let-request++ [~bindings (read-request-string ~request)] ~@body)))
