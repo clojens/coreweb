@@ -62,7 +62,7 @@
       ((eval `(coreweb.handler/<-
                 #(body {} "from:" ~(safe-html (uri-decode uri))
                    (br) ~(str s \: nargs) ~(safe-all (:params req)) \= %)
-                ~i ~s)) (read-request-string req)))))
+                ~(str i) ~s)) req))))
 
 (defn- build-post-form [post-uri nargs]
   (apply form {"action" post-uri "method" "post"}
