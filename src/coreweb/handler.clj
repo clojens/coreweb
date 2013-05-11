@@ -5,7 +5,7 @@
 
 (defmacro <- [reuslt-wrapper bindings & body]
   `(fn [request#]
-     (-> (let-request+++ [~bindings request#] ~@body)
+     (-> (let-request++++ [~bindings request#] ~@body)
        (~reuslt-wrapper)
        (render request#))))
 

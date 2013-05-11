@@ -2,10 +2,10 @@
   (:use ring.util.codec))
 
 (defn uri-encode [uri]
-  (url-encode (clojure.string/replace uri \? \？)));for clojure symbol
+  (url-encode (clojure.string/replace uri \? \？))) ;for clojure symbol
 
 (defn uri-decode [uri]
-  (clojure.string/replace (url-decode uri) \？ \?));for clojure symbol
+  (clojure.string/replace (url-decode uri) \？ \?)) ;for clojure symbol
 
 (defn str-all [obj]
   (cond
@@ -19,3 +19,8 @@
   (if (seq? obj)
     (str-all obj)
     obj))
+
+(defmacro local-bindings []
+  (let [symbols ;remove #(.contains (str %) "_")
+        (map key @clojure.lang.Compiler/LOCAL_ENV)]
+    (zipmap (map (fn [sym] `(quote ~sym)) symbols) symbols)))

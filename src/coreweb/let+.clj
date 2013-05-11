@@ -1,5 +1,6 @@
 (ns coreweb.let+
-  (:use coreweb.request))
+  (:use coreweb.request
+        coreweb.special))
 
 (defn- assoc-&-binding [binds req sym]
   (assoc binds sym `(dissoc (:params ~req)
@@ -70,3 +71,14 @@
   [[s request] body]
   (let [bindings (read-string s)]
     `(let-request++ [~bindings (read-request-string ~request)] ~@body)))
+
+(defmacro symbol-binding [[s request] & body]
+  (if-let [bindings (resolve s)]
+    `(let-request+++ [~(deref bindings) ~request]
+       ~@body)
+    (let [locals (local-bindings)
+          local (or (locals s)  ((locals '&env) s))]
+      `(let-request+++ [~(.eval (.init local)) ~request]
+         ~@body))))
+
+(let+ let-request++++ coreweb.let+/let-request+++ #(-> % ffirst symbol?) coreweb.let+/symbol-binding)
