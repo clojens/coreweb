@@ -18,7 +18,7 @@
 
 (def tag-names
   {:open ["input" "br"]
-   :close ["a" "form" "textarea" "html" "body"]});need more
+   :close ["a" "form" "textarea" "html" "body" "button" "script" "div"]});need more
 
 (defmacro deftag [tag-name tag-fn]
   `(def ~(symbol tag-name)

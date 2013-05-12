@@ -66,15 +66,27 @@
 
 (defn- build-post-form [post-uri nargs]
   (apply form {"action" post-uri "method" "post"}
-    (concat
-      (let [in #(str (br) % \:
-                  (input {"type" "text" "name" (str %)}))]
-        (for [j (range (count nargs))
-              :let [arg (nargs j)]]
-          (if (= '& arg)
-            (in (nargs (inc j)))
-            (in arg))))
-      [(br) (input {"type" "submit"})])))
+    (let [in #(div {} % \:
+                (input {"type" "text" "name" (str %)}))
+          has-more (atom false)]
+      (concat (doall
+                (for [j (range (count nargs))
+                      :let [arg (nargs j)]]
+                  (cond
+                    (= '& arg) (do (reset! has-more true) "")
+                    @has-more (let [more (in arg) function (gensym "f")]
+                                (reset! has-more function)
+                                (str (script {"type" "text/javascript"}
+                                       (str "function " function "(node){"
+                                         "var div = document.createElement('div');"
+                                         "div.innerHTML = '" more "';"
+                                         "var element = div.childNodes[0];"
+                                         "node.parentNode.insertBefore(element,node);"
+                                         "}")) more more))
+                    :else (in arg))))
+        [(if @has-more (button {"type" "button"
+                                "onclick" (str @has-more "(this);")}
+                         "more") "") (input {"type" "submit"})]))))
 
 (defn scan-ns [a-ns]
   (try
@@ -86,10 +98,10 @@
             (str base ".html")
             :all (<-str
                    {uri :uri}
-                     (apply body {} (reduce safe m #{:inline :ns })
-                       (let [args (:arglists m)]
-                         (for [i (range (count args))]
-                           (let [post-uri (str base "@" i ".html") nargs (nth args i)]
-                             (add-eval-mapping uri post-uri s nargs i)
-                             (build-post-form post-uri nargs))))))))))
+                   (apply body {} (reduce safe m #{:inline :ns :inline-arities })
+                     (let [args (:arglists m)]
+                       (for [i (range (count args))]
+                         (let [post-uri (str base "@" i ".html") nargs (nth args i)]
+                           (add-eval-mapping uri post-uri s nargs i)
+                           (build-post-form post-uri nargs))))))))))
     (catch Exception e (.printStackTrace e))))
