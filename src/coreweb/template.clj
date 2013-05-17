@@ -3,35 +3,36 @@
         coreweb.special)
   (:require [clojure.java.io :refer [reader]]))
 
-(defn- rc [^java.io.Reader reader]
+(defn- read-char [^java.io.Reader reader]
   (schar (.read reader)))
 
-(defn- parse [r]
-  (loop [c (rc r) s1 :html s2 :text cur [] all []]
-    (cond
-      (= nil c) (conj all (apply str cur))
-      (= :html s1) (cond
-                     (= :text s2) (cond
-                                    (= \< c) (recur (rc r) s1 :clj? [] (conj all (apply str cur)))
-                                    :else (recur (rc r) s1 s2 (conj cur c) all))
-                     (= :clj? s2) (cond
-                                    (= \@ c) (recur (rc r) :clj :code [] all)
-                                    :else (recur (rc r) s1 :text (conj cur \< c) all)))
-      (= :clj s1) (cond
-                    (= :code s2) (cond
-                                   (= \" c) (recur (rc r) s1 :str (conj cur c) all)
-                                   (= \\ c) (recur (rc r) s1 :char (conj cur c) all)
-                                   (= \@ c) (recur (rc r) s1 :html? cur all)
-                                   :else (recur (rc r) s1 s2 (conj cur c) all))
-                    (= :str s2) (cond
-                                  (= \" c) (recur (rc r) s1 :code (conj cur c) all)
-                                  (= \\ c) (recur (rc r) s1 :escape (conj cur c) all)
-                                  :else (recur (rc r) s1 s2 (conj cur c) all))
-                    (= :char s2) (recur (rc r) s1 :code (conj cur c) all)
-                    (= :html? s2) (cond
-                                    (= \> c) (recur (rc r) :html :text [] (conj all (read-string (apply str cur))))
-                                    :else (recur (rc r) s1 :code (conj cur \@ c) all))
-                    (= :escape s2) (recur (rc r) s1 :str (conj cur c) all)))))
+(defn- parse [reader]
+  (loop [s1 :html s2 :text cur [] all []]
+    (let [c (read-char reader)]
+      (cond
+        (= nil c) (conj all (apply str cur))
+        (= :html s1) (cond
+                       (= :text s2) (cond
+                                      (= \< c) (recur s1 :clj? [] (conj all (apply str cur)))
+                                      :else (recur s1 s2 (conj cur c) all))
+                       (= :clj? s2) (cond
+                                      (= \@ c) (recur :clj :code [] all)
+                                      :else (recur s1 :text (conj cur \< c) all)))
+        (= :clj s1) (cond
+                      (= :code s2) (cond
+                                     (= \" c) (recur s1 :str (conj cur c) all)
+                                     (= \\ c) (recur s1 :char (conj cur c) all)
+                                     (= \@ c) (recur s1 :html? cur all)
+                                     :else (recur s1 s2 (conj cur c) all))
+                      (= :str s2) (cond
+                                    (= \" c) (recur s1 :code (conj cur c) all)
+                                    (= \\ c) (recur s1 :escape (conj cur c) all)
+                                    :else (recur s1 s2 (conj cur c) all))
+                      (= :char s2) (recur s1 :code (conj cur c) all)
+                      (= :html? s2) (cond
+                                      (= \> c) (recur :html :text [] (conj all (read-string (apply str cur))))
+                                      :else (recur s1 :code (conj cur \@ c) all))
+                      (= :escape s2) (recur s1 :str (conj cur c) all))))))
 
 (defn do-fill [reader]
   (let [html (parse reader)]
