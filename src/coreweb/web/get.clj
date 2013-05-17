@@ -5,7 +5,7 @@
         coreweb.special)
   (:require clojure.string))
 
-(def index
+(def get-urls
   (<-str {uri :uri}
     (str "Hello World:" uri (br)
       (clojure.string/join

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>Hello, clojurer!</title>
+</head>
+<body>
+<a href="get-urls">show urls</a><br>
+clojure version:<@(str (:major *clojure-version*) \. (:minor *clojure-version*) \. (:incremental *clojure-version*))@>
+<br>request: <@request@>
+</body>
+</html>

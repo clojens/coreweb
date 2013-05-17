@@ -6,6 +6,7 @@
         coreweb.request
         coreweb.tag
         coreweb.safe
+        coreweb.template
         clojure.java.io)
   (:require clojure.string))
 
@@ -105,3 +106,34 @@
                            (add-eval-mapping uri post-uri s nargs i)
                            (build-post-form post-uri nargs))))))))))
     (catch Exception e (.printStackTrace e))))
+
+(defn- parsing-in-file-system [root-dir]
+  (let [root-path (.getPath root-dir)
+        r clojure.string/replace
+        urif #(let [file-path (.getPath %) mapping-name (subs file-path 0 (- (count file-path) 4)) t (prn mapping-name)]
+                (r (r mapping-name root-path "") java.io.File/separator "/"))]
+    (doseq [afile (file-seq root-dir)]
+      (when (and (.isFile afile) (.endsWith (.getName afile) ".csp"))
+        (add-mapping (urif afile)
+          (<- identity {} (eval (fill afile))))))))
+
+(defn- zip-csp [zis dir-str]
+  (loop [result {}]
+    (if-let [ze (.getNextEntry zis)]
+      (let [zn (.getName ze)]
+        (cond
+          (not (.startsWith zn dir-str)) (recur result)
+          (.endsWith zn ".csp") (recur (conj result [(subs zn 0 (- (count zn) 4)) (fill zis)]))
+          :else (recur result)))
+      result)))
+
+(defn- mapping-entry [root-path entry]
+  (add-mapping (clojure.string/replace (entry 0) root-path "") (<- identity {} (eval (entry 1)))))
+
+(defn scan-root [root-path]
+  (if-let [root-dir (file (resource root-path))]
+    (parsing-in-file-system root-dir)
+    (when-let [jar (this-jar coreweb.scan)]
+      (let [zip (java.util.zip.ZipInputStream. (.openStream jar))]
+        (dorun (map (partial mapping-entry root-path) (zip-csp zip root-path)))
+        (.close zip)))))

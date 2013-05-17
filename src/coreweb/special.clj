@@ -24,3 +24,8 @@
   (let [symbols ;remove #(.contains (str %) "_")
         (map key @clojure.lang.Compiler/LOCAL_ENV)]
     (zipmap (map (fn [sym] `(quote ~sym)) symbols) symbols)))
+
+(defn schar [i]
+  (try
+    (char i)
+    (catch Exception e nil)))

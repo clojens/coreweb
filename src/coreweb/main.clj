@@ -1,5 +1,5 @@
 (ns coreweb.main
-  (:gen-class )
+  (:gen-class)
   (:use ring.adapter.jetty
         ring.middleware.params
         coreweb.mapping
@@ -26,4 +26,5 @@
   (do
     (scan-prefix-ns 'coreweb.web)
     (scan-ns 'clojure.core)
+    (scan-root "coreweb/root")
     (run-jetty (wrap-params app) {:port 3000})))
