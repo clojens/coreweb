@@ -73,6 +73,7 @@
     `(let-request++ [~bindings (read-request-string ~request)] ~@body)))
 
 (defmacro symbol-binding [[s request] & body]
+  (check-constant (local-bindings) s :flat)
   (if-let [bindings (resolve s)]
     `(let-request+++ [~(deref bindings) ~request]
        ~@body)

@@ -184,4 +184,10 @@
       (let-request++++ [ttt {:params {:x "1", :y "2"}}]
         (is (= x "1"))
         (is (= y yv)))))
+
+  #_ (testing "testing throw Exception when compile time,
+               if compile this form, Exception will be thrown"
+       (fn [x]
+         (let-request++++ [x {:params {:x "1", :y "2"}}] nil)))
+
   )
