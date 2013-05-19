@@ -30,8 +30,8 @@
     (char i)
     (catch Exception e nil)))
 
-(defn check-constant
-  "opts, :flat not check seq, :pure throw-if not pure in java"
+(defn check-expression
+  "opts, :flat not check seq, :pure throw-if not pure in java, :constant check resolve and init"
   [locals obj & opts]
   (let [nil# (gensym "nil_")
         find-one #(or (locals %)
@@ -44,7 +44,9 @@
       (let [cs (class s)]
         (cond
           (empty? all) true
-          (nil? s) (throw (Exception. "null init"))
+          (nil? s) (if (some #{:constant})
+                     (throw (Exception. "null init"))
+                     (recur more))
           (seq? s) (if (some #{:flat } opts)
                      (recur more)
                      (recur (concat s more)))
