@@ -107,33 +107,46 @@
                            (build-post-form post-uri nargs))))))))))
     (catch Exception e (.printStackTrace e))))
 
+(defn- mapping-name [file-path]
+  (if (.endsWith file-path ".csp")
+    (subs file-path 0 (- (count file-path) 4))
+    file-path))
+
 (defn- parsing-in-file-system [root-dir]
   (let [root-path (.getPath root-dir)
         r clojure.string/replace
-        urif #(let [file-path (.getPath %) mapping-name (subs file-path 0 (- (count file-path) 4)) t (prn mapping-name)]
-                (r (r mapping-name root-path "") java.io.File/separator "/"))]
+        urif #(r (r (mapping-name (.getPath %)) root-path "") java.io.File/separator "/")]
     (doseq [afile (file-seq root-dir)]
-      (when (and (.isFile afile) (.endsWith (.getName afile) ".csp"))
-        (add-mapping (urif afile)
-          (<- identity {} (eval (fill afile))))))))
+      (when (.isFile afile)
+        (if (.endsWith (.getName afile) ".csp")
+          (add-mapping (urif afile)
+            (<- identity {} (eval (fill afile))))
+          (add-mapping (urif afile)
+            (<- identity {} afile)))))))
 
-(defn- zip-csp [zis dir-str]
+(defn- zip-file [zis dir-str]
   (loop [result {}]
     (if-let [ze (.getNextEntry zis)]
       (let [zn (.getName ze)]
         (cond
           (not (.startsWith zn dir-str)) (recur result)
-          (.endsWith zn ".csp") (recur (conj result [(subs zn 0 (- (count zn) 4)) (fill zis)]))
-          :else (recur result)))
+          (.endsWith zn ".csp") (recur (conj result [zn (fill zis)]))
+          (.isDirectory ze) (recur result)
+          :else (recur (conj result [zn (let [out (java.io.ByteArrayOutputStream.)]
+                                          (copy zis out)
+                                          (fn [_] (java.io.ByteArrayInputStream. (.toByteArray out))))]))))
       result)))
 
 (defn- mapping-entry [root-path entry]
-  (add-mapping (clojure.string/replace (entry 0) root-path "") (<- identity {} (eval (entry 1)))))
+  (let [path (clojure.string/replace (entry 0) root-path "")]
+    (if (.endsWith path ".csp")
+      (add-mapping (mapping-name path) (<- identity {} (eval (entry 1))))
+      (add-mapping (mapping-name path) (<- identity {} (entry 1))))))
 
 (defn scan-root [root-path]
   (if-let [root-dir (file (resource root-path))]
     (parsing-in-file-system root-dir)
     (when-let [jar (this-jar coreweb.scan)]
       (let [zip (java.util.zip.ZipInputStream. (.openStream jar))]
-        (dorun (map (partial mapping-entry root-path) (zip-csp zip root-path)))
+        (dorun (map (partial mapping-entry root-path) (zip-file zip root-path)))
         (.close zip)))))
