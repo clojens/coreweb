@@ -44,68 +44,70 @@
       (let [cs (class s)]
         (cond
           (empty? all) true
+          (nil? s) (throw (Exception. "null init"))
           (seq? s) (if (some #{:flat } opts)
                      (recur more)
                      (recur (concat s more)))
-          (and (symbol? s) (= nil# (find-one s))) (if (resolve s)
-                                                    (recur more)
-                                                    (throw (Exception. (str "nil resolve:" s))))
+          (and (symbol? s) (= nil# (find-one s))) (if-let [rs (resolve s)]
+                                                    (if (.startsWith (str @rs) "Unbound:")
+                                                      (throw (Exception. (str "unbound resolve:" s)))
+                                                      (recur more))
+                                                    (throw (Exception. (str "null resolve:" s))))
           (symbol? s) (recur (conj more (find-one s)))
-          (nil? s) (throw (Exception. "nil init"))
           (and (some #{:pure } opts)
             (contains? #{clojure.lang.Compiler$StaticMethodExpr
                          clojure.lang.Compiler$NewInstanceMethod} cs)) (throw (Exception. (str "not pure:" s)))
-          (= clojure.lang.Compiler$UnresolvedVarExpr cs) (recur (conj more (.symbol s)))
-          (= clojure.lang.Compiler$VarExpr cs) (recur (conj more (.deref (.var s))))
-          (= clojure.lang.Compiler$LocalBindingExpr cs) (recur (conj more (.b s)))
-          (= clojure.lang.Compiler$InvokeExpr cs) (recur (conj (into more (.args s)) (.fexpr s)))
-          (= clojure.lang.Compiler$MetaExpr cs) (recur (conj more (.expr s) (.meta s)))
-          (= clojure.lang.Compiler$IfExpr cs) (recur (conj more (.testExpr s) (.thenExpr s) (.elseExpr s)))
-          (= clojure.lang.Compiler$MapExpr cs) (recur (into more (.keyvals s)))
-          (= clojure.lang.Compiler$SetExpr cs) (recur (into more (.keys s)))
-          (= clojure.lang.Compiler$InstanceOfExpr cs) (recur (conj more (.expr s)))
+          (= clojure.lang.Compiler$BodyExpr cs) (recur (into more (.exprs s)))
+          (= clojure.lang.Compiler$CaseExpr cs) (recur (conj (concat (vals (.tests s)) (vals (.thens s)) more)
+                                                         (.defaultExpr s) (.expr s)))
           (= clojure.lang.Compiler$FnExpr cs) (recur (into more (.methods s)))
           (= clojure.lang.Compiler$FnMethod cs) (recur
                                                   (let [b (into more (.reqParms s))]
                                                     (if-let [r (.restParm s)]
                                                       (conj b r) b)))
-          (= clojure.lang.Compiler$BodyExpr cs) (recur (into more (.exprs s)))
-          (= clojure.lang.Compiler$NewInstanceExpr cs) (recur (into more (.methods s)))
-          (= clojure.lang.Compiler$NewInstanceMethod cs) (recur (into more (.parms s)))
-          (= clojure.lang.Compiler$CaseExpr cs) (recur (conj (concat (vals (.tests s)) (vals (.thens s)) more)
-                                                         (.defaultExpr s) (.expr s)))
-          (contains? #{clojure.lang.Compiler$LetFnExpr
-                       clojure.lang.Compiler$LetExpr} cs) (recur (conj (into more (.bindingInits s)) (.body s)))
-          (contains? #{clojure.lang.Compiler$KeywordInvokeExpr
-                       clojure.lang.Compiler$MonitorEnterExpr
-                       clojure.lang.Compiler$MonitorExitExpr
-                       } cs) (recur (conj more (.target s)))
-          (contains? #{clojure.lang.Compiler$StaticMethodExpr
-                       clojure.lang.Compiler$NewExpr
-                       clojure.lang.Compiler$ListExpr
-                       clojure.lang.Compiler$VectorExpr
-                       clojure.lang.Compiler$StaticInvokeExpr
-                       clojure.lang.Compiler$RecurExpr} cs) (recur (into more (.args s)))
-          (= clojure.lang.Compiler$TryExpr cs) (recur (conj (into more (.catchExprs s)) (.tryExpr s) (.finallyExpr s)))
-          (= clojure.lang.Compiler$ThrowExpr cs) (recur (conj more (.excExpr s)))
-          (= clojure.lang.Compiler$InstanceMethodExpr cs) (recur (conj (into more (.args s)) (.target s)))
+          (= clojure.lang.Compiler$IfExpr cs) (recur (conj more (.testExpr s) (.thenExpr s) (.elseExpr s)))
           (= clojure.lang.Compiler$InstanceFieldExpr cs) (if (and (some #{:pure } opts) (not (is-final s)))
                                                            (throw (Exception. (str "not pure:" s)))
                                                            (recur (conj more (.target s))))
+          (= clojure.lang.Compiler$InstanceMethodExpr cs) (recur (conj (into more (.args s)) (.target s)))
+          (= clojure.lang.Compiler$InstanceOfExpr cs) (recur (conj more (.expr s)))
+          (= clojure.lang.Compiler$InvokeExpr cs) (recur (conj (into more (.args s)) (.fexpr s)))
+          (= clojure.lang.Compiler$LocalBindingExpr cs) (recur (conj more (.b s)))
+          (= clojure.lang.Compiler$MapExpr cs) (recur (into more (.keyvals s)))
+          (= clojure.lang.Compiler$MetaExpr cs) (recur (conj more (.expr s) (.meta s)))
+          (= clojure.lang.Compiler$NewInstanceExpr cs) (recur (into more (.methods s)))
+          (= clojure.lang.Compiler$NewInstanceMethod cs) (recur (into more (.parms s)))
+          (= clojure.lang.Compiler$SetExpr cs) (recur (into more (.keys s)))
           (= clojure.lang.Compiler$StaticFieldExpr cs) (if (and (some #{:pure } opts) (not (is-final s)))
                                                          (throw (Exception. (str "not pure:" s)))
                                                          (recur more))
-          (contains? #{clojure.lang.Compiler$LocalBinding
+          (= clojure.lang.Compiler$ThrowExpr cs) (recur (conj more (.excExpr s)))
+          (= clojure.lang.Compiler$TryExpr cs) (recur (conj (into more (.catchExprs s)) (.tryExpr s) (.finallyExpr s)))
+          (= clojure.lang.Compiler$UnresolvedVarExpr cs) (recur (conj more (.symbol s)))
+          (contains? #{clojure.lang.Compiler$LetExpr
+                       clojure.lang.Compiler$LetFnExpr} cs) (recur (conj (into more (.bindingInits s)) (.body s)))
+          (contains? #{clojure.lang.Compiler$TheVarExpr
+                       clojure.lang.Compiler$VarExpr} cs) (recur (conj more (.deref (.var s))))
+          (contains? #{clojure.lang.Compiler$BindingInit
                        clojure.lang.Compiler$DefExpr
-                       clojure.lang.Compiler$BindingInit} cs) (recur (conj more (.init s)))
+                       clojure.lang.Compiler$LocalBinding} cs) (recur (conj more (.init s)))
+          (contains? #{clojure.lang.Compiler$KeywordInvokeExpr
+                       clojure.lang.Compiler$MonitorEnterExpr
+                       clojure.lang.Compiler$MonitorExitExpr} cs) (recur (conj more (.target s)))
+          (contains? #{clojure.lang.Compiler$ListExpr
+                       clojure.lang.Compiler$NewExpr
+                       clojure.lang.Compiler$RecurExpr
+                       clojure.lang.Compiler$StaticInvokeExpr
+                       clojure.lang.Compiler$StaticMethodExpr
+                       clojure.lang.Compiler$VectorExpr} cs) (recur (into more (.args s)))
           (contains? #{clojure.lang.Compiler$AssignExpr ;always nil
-                       clojure.lang.Compiler$ImportExpr ;always nil
-                       clojure.lang.Compiler$KeywordExpr
-                       clojure.lang.Compiler$StringExpr
-                       clojure.lang.Compiler$NumberExpr
-                       clojure.lang.Compiler$ConstantExpr
-                       clojure.lang.Compiler$NilExpr
                        clojure.lang.Compiler$BooleanExpr
-                       clojure.lang.Compiler$EmptyExpr} cs) (recur more)
+                       clojure.lang.Compiler$ConstantExpr
+                       clojure.lang.Compiler$EmptyExpr
+                       clojure.lang.Compiler$ImportExpr ;always nil
+                       clojure.lang.Compiler$NilExpr
+                       clojure.lang.Compiler$NumberExpr
+                       clojure.lang.Compiler$KeywordExpr
+                       clojure.lang.Compiler$StringExpr} cs) (recur more)
           (.contains (str cs) "clojure.lang.Compiler$") (throw (Exception. (str "not analyze completely:" cs)))
           :else (recur more))))))
