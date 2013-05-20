@@ -44,7 +44,7 @@
       (let [cs (class s)]
         (cond
           (empty? all) true
-          (nil? s) (if (some #{:constant})
+          (nil? s) (if (some #{:constant })
                      (throw (Exception. "null init"))
                      (recur more))
           (seq? s) (if (some #{:flat } opts)
@@ -56,9 +56,6 @@
                                                       (recur more))
                                                     (throw (Exception. (str "null resolve:" s))))
           (symbol? s) (recur (conj more (find-one s)))
-          (and (some #{:pure } opts)
-            (contains? #{clojure.lang.Compiler$StaticMethodExpr
-                         clojure.lang.Compiler$NewInstanceMethod} cs)) (throw (Exception. (str "not pure:" s)))
           (= clojure.lang.Compiler$BodyExpr cs) (recur (into more (.exprs s)))
           (= clojure.lang.Compiler$CaseExpr cs) (recur (conj (concat (vals (.tests s)) (vals (.thens s)) more)
                                                          (.defaultExpr s) (.expr s)))
@@ -71,7 +68,9 @@
           (= clojure.lang.Compiler$InstanceFieldExpr cs) (if (and (some #{:pure } opts) (not (is-final s)))
                                                            (throw (Exception. (str "not pure:" s)))
                                                            (recur (conj more (.target s))))
-          (= clojure.lang.Compiler$InstanceMethodExpr cs) (recur (conj (into more (.args s)) (.target s)))
+          (= clojure.lang.Compiler$InstanceMethodExpr cs) (if (some #{:pure } opts)
+                                                            (throw (Exception. (str "not pure:" s)))
+                                                            (recur (conj (into more (.args s)) (.target s))))
           (= clojure.lang.Compiler$InstanceOfExpr cs) (recur (conj more (.expr s)))
           (= clojure.lang.Compiler$InvokeExpr cs) (recur (conj (into more (.args s)) (.fexpr s)))
           (= clojure.lang.Compiler$LocalBindingExpr cs) (recur (conj more (.b s)))
@@ -83,6 +82,9 @@
           (= clojure.lang.Compiler$StaticFieldExpr cs) (if (and (some #{:pure } opts) (not (is-final s)))
                                                          (throw (Exception. (str "not pure:" s)))
                                                          (recur more))
+          (= clojure.lang.Compiler$StaticMethodExpr cs) (if (some #{:pure } opts)
+                                                          (throw (Exception. (str "not pure:" s)))
+                                                          (recur (into more (.args s))))
           (= clojure.lang.Compiler$ThrowExpr cs) (recur (conj more (.excExpr s)))
           (= clojure.lang.Compiler$TryExpr cs) (recur (conj (into more (.catchExprs s)) (.tryExpr s) (.finallyExpr s)))
           (= clojure.lang.Compiler$UnresolvedVarExpr cs) (recur (conj more (.symbol s)))
@@ -100,7 +102,6 @@
                        clojure.lang.Compiler$NewExpr
                        clojure.lang.Compiler$RecurExpr
                        clojure.lang.Compiler$StaticInvokeExpr
-                       clojure.lang.Compiler$StaticMethodExpr
                        clojure.lang.Compiler$VectorExpr} cs) (recur (into more (.args s)))
           (contains? #{clojure.lang.Compiler$AssignExpr ;always nil
                        clojure.lang.Compiler$BooleanExpr
