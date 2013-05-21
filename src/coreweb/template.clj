@@ -36,7 +36,7 @@
 
 (defn do-fill [reader]
   (let [html (parse reader)]
-    `(fn [~(symbol "request")] (str ~@html))))
+    `(fn [~'request] (str ~@html))))
 
 (defprotocol fillable
   (fill [input]
