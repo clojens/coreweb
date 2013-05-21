@@ -1,9 +1,10 @@
 (ns coreweb.main
-  (:gen-class)
+  (:gen-class )
   (:use ring.adapter.jetty
         ring.middleware.params
         coreweb.mapping
-        coreweb.scan)
+        coreweb.scan
+        coreweb.safe)
   (:require clojure.string))
 
 (defn- app [request]
@@ -17,7 +18,7 @@
             (.printStackTrace e)
             {:status 500
              :headers {"Content-Type" "text/html; charset=UTF-8"}
-             :body (str request)})))
+             :body (str (safe request :body ))})))
       {:status 404
        :headers {"Content-Type" "text/html; charset=UTF-8"}
        :body (str "Not Found:" uri)})))

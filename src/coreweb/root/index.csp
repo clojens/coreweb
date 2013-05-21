@@ -7,6 +7,6 @@
 <body>
 <a href="get-urls">show urls</a><br>
 clojure version:<@(str (:major *clojure-version*) \. (:minor *clojure-version*) \. (:incremental *clojure-version*))@>
-<br>request: <@request@>
+<br>request: <@(do (require 'coreweb.safe) (coreweb.safe/safe request :body))@>
 </body>
 </html>
