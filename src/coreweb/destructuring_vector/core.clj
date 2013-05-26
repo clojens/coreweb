@@ -11,4 +11,3 @@
 
 (defmacro v-recur [& body]
   `(recur [~@body]))
-

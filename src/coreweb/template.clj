@@ -1,8 +1,7 @@
 (ns coreweb.template
   (:use coreweb.tag
         coreweb.special
-        coreweb.destructuring-vector.core
-        coreweb.destructuring-vector.helper)
+        coreweb.destructuring-vector.core)
   (:require [clojure.java.io :refer [reader]]))
 
 (defn- read-char [^java.io.Reader reader]
@@ -10,32 +9,32 @@
 
 (defn- parse [reader]
   (let [rr #(read-char reader)
-        parse-html-text (sd<-d (d-fn [c cur all]
+        parse-html-text (l-fn [c cur all]
                                  (cond
                                    (= nil c) [nil :text cur all]
                                    (= \< c) [(rr) :clj? [] (conj all (apply str cur))]
-                                   :else (v-recur (rr) (conj cur c) all))))
-        parse-html (sd<-d (d-fn [c s2 cur all]
+                                   :else (v-recur (rr) (conj cur c) all)))
+        parse-html (l-fn [c s2 cur all]
                             (cond
                               (= nil c) [nil :html s2 cur all]
                               (= :text s2) (recur (parse-html-text c cur all))
                               (= :clj? s2) (cond
                                              (= \@ c) [(rr) :clj :code [] all]
-                                             :else (v-recur (rr) :text (conj cur \< c) all)))))
-        parse-clj-code (sd<-d (d-fn [c cur all]
+                                             :else (v-recur (rr) :text (conj cur \< c) all))))
+        parse-clj-code (l-fn [c cur all]
                                 (cond
                                   (= nil c) [nil :code cur all]
                                   (= \" c) [(rr) :str (conj cur c) all]
                                   (= \\ c) [(rr) :char (conj cur c) all]
                                   (= \@ c) [(rr) :html? cur all]
-                                  :else (v-recur (rr) (conj cur c) all))))
-        parse-clj-str (sd<-d (d-fn [c cur all]
+                                  :else (v-recur (rr) (conj cur c) all)))
+        parse-clj-str (l-fn [c cur all]
                                (cond
                                  (= nil c) [nil :str cur all]
                                  (= \" c) [(rr) :code (conj cur c) all]
                                  (= \\ c) [(rr) :escape (conj cur c) all]
-                                 :else (v-recur (rr) (conj cur c) all))))
-        parse-clj (sd<-d (d-fn [c s2 cur all]
+                                 :else (v-recur (rr) (conj cur c) all)))
+        parse-clj (l-fn [c s2 cur all]
                            (cond
                              (= nil c) [nil :clj s2 cur all]
                              (= :code s2) (recur (parse-clj-code c cur all))
@@ -44,7 +43,7 @@
                              (= :html? s2) (cond
                                              (= \> c) [(rr) :html :text [] (conj all (read-string (apply str cur)))]
                                              :else (v-recur (rr) :code (conj cur \@ c) all))
-                             (= :escape s2) (v-recur (rr) :str (conj cur c) all))))]
+                             (= :escape s2) (v-recur (rr) :str (conj cur c) all)))]
     (loop [[c s1 s2 cur all] [(rr) :html :text [] []]]
       (cond
         (= nil c) (conj all (apply str cur))
