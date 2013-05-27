@@ -81,7 +81,7 @@
 
 (def macro? (check-meta :macro ))
 
-(defmacro auto [transform prefix ans]
+(defmacro auto [ans prefix transform]
   `(do ~@(map (fn [[s#]]
                 (let [n# (symbol (clojure.string/replace (str prefix s#) "/" "|"))]
                   `(def ~n# (~transform ~s#))))

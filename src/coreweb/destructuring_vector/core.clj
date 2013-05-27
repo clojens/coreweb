@@ -5,9 +5,9 @@
 
 (build-all coreweb.destructuring-vector.helper/build-higher-order-defn)
 
-(auto d<-fn "d-" clojure.core)
+(auto clojure.core "d-" d<-fn)
 
-(auto dvo<-fn "dvo-" clojure.core)
+(auto clojure.core "dvo-" dvo<-fn)
 
 (defmacro v-recur [& body]
   `(recur [~@body]))
