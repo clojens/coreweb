@@ -11,3 +11,7 @@
 
 (defmacro v-recur [& body]
   `(recur [~@body]))
+
+(defn dd-partial [[f & more]]
+  (fn [v]
+    (f (lazy-cat more v))))

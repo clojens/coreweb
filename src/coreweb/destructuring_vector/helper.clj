@@ -6,11 +6,11 @@
 (defn arg<-destructuring [avector]
   (vec (take-while #(not= :as %) avector)))
 
-(defn destructured-helper [avector]
-  (if (some #{'&} avector)
-    `(into [~@(take-while #(not= '& %) avector)]
-       ~(second (drop-while #(not= '& %) avector)))
-    (arg<-destructuring avector)))
+(defn destructured-helper [aseq]
+  (if (some #{'&} aseq)
+    `(into [~@(take-while #(not= '& %) aseq)]
+       ~(second (drop-while #(not= '& %) aseq)))
+    (arg<-destructuring aseq)))
 
 (defn ^{:higher-order-builder true :overload false :prefix "d-"}
   d-fn-body [avector more]
@@ -77,9 +77,9 @@
 (defmacro sd<-d [df]
   `(fn sd-fn#
      ([args#] (~df args#))
-     ([head# & tail#] (sd-fn# (vec (cons head# tail#))))))
+     ([head# & tail#] (sd-fn# (cons head# tail#)))))
 
-(def macro? (check-meta :macro ))
+(def macro? (check-meta :macro))
 
 (defmacro auto [ans prefix transform]
   `(do ~@(map (fn [[s#]]
